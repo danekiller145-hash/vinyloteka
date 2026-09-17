@@ -4,93 +4,61 @@ import { useState, useEffect } from 'react';
 import Catalog from './pages/Catalog';
 import Cart from './pages/Cart';
 import Profile from './pages/Profile';
+import './App.css';
 
 function Navbar({ cart, user }) {
   const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
   const isActive = (path) => location.pathname === path;
 
+  const handleLinkClick = () => setMenuOpen(false);
+
   return (
-    <nav style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '15px 40px',
-      backgroundColor: '#FFFFFF',
-      color: '#130F27',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      boxShadow: '0 2px 12px rgba(19, 15, 39, 0.08)',
-      fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif"
-    }}>
-      <Link to="/" style={{ 
-        color: '#130F27', 
-        textDecoration: 'none',
-        fontSize: '24px',
-        fontWeight: '700',
-        letterSpacing: '1px',
-        fontFamily: "'Inter', sans-serif"
-      }}>
+    <nav className="navbar">
+      <Link to="/" className="navbar-logo" onClick={handleLinkClick}>
         ВИНИЛОТЕКА
       </Link>
 
-      <div style={{ flex: 1, maxWidth: '400px', margin: '0 40px' }}>
-        <input
-          type="text"
-          placeholder="Поиск пластинок..."
-          style={{
-            width: '100%',
-            padding: '10px 20px',
-            borderRadius: '8px',
-            border: '1px solid #E5E0D8',
-            fontSize: '14px',
-            backgroundColor: '#FFFFFF',
-            color: '#130F27',
-            outline: 'none',
-            fontFamily: "'Inter', sans-serif"
-          }}
-          onFocus={(e) => e.target.style.borderColor = '#FF9451'}
-          onBlur={(e) => e.target.style.borderColor = '#E5E0D8'}
-        />
+      {/* Поиск на десктопе */}
+      <div className="navbar-search">
+        <input type="text" placeholder="Поиск пластинок..." />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
+      {/* Бургер для мобильных */}
+      <button 
+        className="navbar-burger"
+        onClick={() => setMenuOpen(!menuOpen)}
+      >
+        {menuOpen ? '✕' : '☰'}
+      </button>
+
+      {/* Меню */}
+      <div className={`navbar-links ${menuOpen ? 'open' : ''}`}>
+        {/* Поиск в мобильном меню */}
+        <input 
+          type="text" 
+          placeholder="Поиск пластинок..." 
+          className="mobile-search"
+        />
+
         <Link 
           to="/catalog" 
-          style={{ 
-            color: isActive('/catalog') ? '#FF9451' : '#130F27',
-            textDecoration: 'none',
-            fontSize: '15px',
-            fontWeight: isActive('/catalog') ? '700' : '500',
-            transition: '0.3s',
-            fontFamily: "'Inter', sans-serif"
-          }}
+          className={isActive('/catalog') ? 'active' : ''}
+          onClick={handleLinkClick}
         >
           Каталог
         </Link>
         <Link 
           to="/cart" 
-          style={{ 
-            color: isActive('/cart') ? '#FF9451' : '#130F27',
-            textDecoration: 'none',
-            fontSize: '15px',
-            fontWeight: isActive('/cart') ? '700' : '500',
-            transition: '0.3s',
-            fontFamily: "'Inter', sans-serif"
-          }}
+          className={isActive('/cart') ? 'active' : ''}
+          onClick={handleLinkClick}
         >
           Корзина ({cart.length})
         </Link>
         <Link 
           to="/profile" 
-          style={{ 
-            color: isActive('/profile') ? '#FF9451' : '#130F27',
-            textDecoration: 'none',
-            fontSize: '15px',
-            fontWeight: isActive('/profile') ? '700' : '500',
-            transition: '0.3s',
-            fontFamily: "'Inter', sans-serif"
-          }}
+          className={isActive('/profile') ? 'active' : ''}
+          onClick={handleLinkClick}
         >
           {user ? user.name : 'Войти'}
         </Link>
@@ -170,9 +138,9 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div style={{ minHeight: '100vh', backgroundColor: '#FFF1DE' }}>
+      <div className="app-container">
         <Navbar cart={cart} user={user} />
-        <div style={{ padding: '20px' }}>
+        <div className="page-container">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/catalog" element={

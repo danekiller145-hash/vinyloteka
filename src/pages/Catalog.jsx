@@ -1,22 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../supabase';
 import './Catalog.css';
 
 function Catalog({ addToCart, favorites, toggleFavorite }) {
   const [search, setSearch] = useState('');
   const [priceFilter, setPriceFilter] = useState('all');
   const [genreFilter, setGenreFilter] = useState('all');
+  const [vinyls, setVinyls] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const vinyls = [
-    { id: 1, title: 'Abbey Road', artist: 'The Beatles', price: 2500, genre: 'rock', image: 'https://spl.ru/upload/iblock/9dc/lty9ncv5zhjmjk2cl74ztbc0f2u9agi2/lp_the_beatles_abbey_road_0602577915123_01.jpg' },
-    { id: 2, title: 'Nevermind', artist: 'Nirvana', price: 2000, genre: 'rock', image: 'https://img.audiomania.ru/pics/goods/original/n/nirvana__nevermind_lp_7-1.jpg' },
-    { id: 3, title: 'Back in Black', artist: 'AC/DC', price: 2200, genre: 'rock', image: 'https://doctorhead.ru/upload/dev2fun.imagecompress/webp/iblock/cfe/swk02rookylagkr0xwn161pp4ln3cgs0/ac_dc_bl_1.webp' },
-    { id: 4, title: 'Three Cheers for Sweet Revenge', artist: 'My Chemical Romance', price: 4999, genre: 'emo', image: 'https://n.cdn.cdek.shopping/images/shopping/8BRBBMzYxO9ThMDs.jpg?v=1' },
-    { id: 5, title: 'From Death To Destiny', artist: 'Asking Alexandria', price: 3999, genre: 'metal', image: 'https://cdn-images.dzcdn.net/images/cover/77fde27b932d3d29781c89e24ebdfc65/1000x1000.jpg' },
-    { id: 6, title: 'AM', artist: 'Arctic Monkeys', price: 3999, genre: 'indie', image: 'https://appmistore.ru/upload/iblock/2b4/atsn5687hucs7fsl3ckg7tudj8z236t3/vinilovaya-plastinka-arctic-monkeys-am.webp' },
-    { id: 7, title: 'Queen II', artist: 'Queen', price: 4999, genre: 'rock', image: 'https://avatars.yandex.net/get-music-content/28589/cd356082.a.215687-1/m1000x1000' },
-    { id: 8, title: 'Arrival', artist: 'ABBA', price: 2999, genre: 'pop', image: 'https://avatars.mds.yandex.net/i?id=cc836059f6518c3bc060f955b8b26d58_l-5330362-images-thumbs&n=13' },
-    { id: 9, title: 'Бордерлайн', artist: 'Земфира', price: 3999, genre: 'rock', image: 'https://avatars.yandex.net/get-music-content/19035207/8f04081d.a.21644362-2/m1000x1000' }
-  ];
+  // Загрузка пластинок из Supabase
+  useEffect(() => {
+    const fetchVinyls = async () => {
+      setLoading(true);
+      const { data, error } = await supabase.from('vinyls').select('*');
+      if (error) {
+        console.error('Ошибка загрузки:', error);
+      } else {
+        setVinyls(data || []);
+      }
+      setLoading(false);
+    };
+    fetchVinyls();
+  }, []);
 
   const filteredVinyls = vinyls
     .filter((vinyl) => {
@@ -39,6 +45,15 @@ function Catalog({ addToCart, favorites, toggleFavorite }) {
     { value: 'metal', label: 'Металл' },
     { value: 'indie', label: 'Инди' }
   ];
+
+  if (loading) {
+    return (
+      <div className="catalog">
+        <h1 className="catalog-title">КАТАЛОГ ВИНИЛА</h1>
+        <p className="no-results">Загрузка...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="catalog">
@@ -91,25 +106,39 @@ function Catalog({ addToCart, favorites, toggleFavorite }) {
       ) : (
         <div className="vinyl-grid">
           {filteredVinyls.map((vinyl) => (
-            <div key={vinyl.id} className="vinyl-card">
-              <img src={vinyl.image} alt={vinyl.title} />
+            <div key={vinyl.vinyl_id} className="vinyl-card">
+              <img src={vinyl.image_path} alt={vinyl.title} />
               <h3>{vinyl.title}</h3>
               <p className="artist">{vinyl.artist}</p>
               <p className="price">{vinyl.price} ₽</p>
 
               <div className="actions">
                 <button
-                  onClick={() => addToCart(vinyl)}
+                  onClick={() => addToCart({
+                    id: vinyl.vinyl_id,
+                    title: vinyl.title,
+                    artist: vinyl.artist,
+                    price: vinyl.price,
+                    image: vinyl.image_path,
+                    genre: vinyl.genre
+                  })}
                   className="btn-add-cart"
                 >
                   В корзину
                 </button>
 
                 <button
-                  onClick={() => toggleFavorite(vinyl)}
+                  onClick={() => toggleFavorite({
+                    id: vinyl.vinyl_id,
+                    title: vinyl.title,
+                    artist: vinyl.artist,
+                    price: vinyl.price,
+                    image: vinyl.image_path,
+                    genre: vinyl.genre
+                  })}
                   className="btn-favorite"
                 >
-                  {favorites && favorites.some((fav) => fav.id === vinyl.id) ? '♥' : '♡'}
+                  {favorites && favorites.some((fav) => fav.id === vinyl.vinyl_id) ? '♥' : '♡'}
                 </button>
               </div>
             </div>

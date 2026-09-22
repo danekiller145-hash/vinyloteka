@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../supabase';
 import './Profile.css';
 
 function Profile({ user, setUser, favorites, toggleFavorite, orders }) {
-  const [isLogin, setIsLogin] = useState(!user);
+  const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [agree, setAgree] = useState(false);
   const [email, setEmail] = useState('');
@@ -10,13 +11,14 @@ function Profile({ user, setUser, favorites, toggleFavorite, orders }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [openSection, setOpenSection] = useState('personal');
 
   const [personalData, setPersonalData] = useState({
-    firstName: user?.name?.split(' ')[0] || '',
-    lastName: user?.name?.split(' ')[1] || '',
-    email: user?.email || '',
+    firstName: '',
+    lastName: '',
+    email: '',
     phone: ''
   });
 
@@ -27,40 +29,94 @@ function Profile({ user, setUser, favorites, toggleFavorite, orders }) {
     city: ''
   });
 
+  // Обновляем личные данные, когда user загружается
+  useEffect(() => {
+    if (user) {
+      setPersonalData({
+        firstName: user.name?.split(' ')[0] || '',
+        lastName: user.name?.split(' ')[1] || '',
+        email: user.email || '',
+        phone: ''
+      });
+    }
+  }, [user]);
+
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const validatePassword = (pwd) => pwd.length >= 8 && /\d/.test(pwd) && /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
+
     if (!email) newErrors.email = 'Email обязателен';
     else if (!validateEmail(email)) newErrors.email = 'Введите корректный email';
+
     if (!password) newErrors.password = 'Пароль обязателен';
     else if (!validatePassword(password)) {
       newErrors.password = 'Пароль: минимум 8 символов, цифра и спецсимвол';
     }
+
     if (!isLogin) {
       if (!name) newErrors.name = 'Имя обязательно';
       if (password !== confirmPassword) newErrors.confirmPassword = 'Пароли не совпадают';
       if (!agree) newErrors.agree = 'Подтвердите согласие';
     }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
+
     setErrors({});
-    setUser({ name: name || 'Пользователь', email });
-    setIsLogin(false);
-    setPersonalData(prev => ({
-      ...prev,
-      firstName: name?.split(' ')[0] || 'Пользователь',
-      lastName: name?.split(' ')[1] || '',
-      email: email
-    }));
-    alert(isLogin ? 'Вход выполнен!' : 'Регистрация прошла успешно!');
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        // ВХОД
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) throw error;
+
+        setUser({
+          id: data.user.id,
+          name: data.user.user_metadata?.name || 'Пользователь',
+          email: data.user.email
+        });
+
+        alert('Вход выполнен!');
+      } else {
+        // РЕГИСТРАЦИЯ
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name }
+          }
+        });
+
+        if (error) throw error;
+
+        setUser({
+          id: data.user?.id,
+          name: name,
+          email: email
+        });
+
+        alert('Регистрация прошла успешно!');
+      }
+    } catch (error) {
+      console.error('Ошибка:', error);
+      alert(`Ошибка: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setIsLogin(true);
     alert('Вы вышли из аккаунта');
@@ -143,8 +199,8 @@ function Profile({ user, setUser, favorites, toggleFavorite, orders }) {
             </>
           )}
 
-          <button type="submit" className="submit-btn">
-            {isLogin ? 'ВОЙТИ' : 'ЗАРЕГИСТРИРОВАТЬСЯ'}
+          <button type="submit" className="submit-btn" disabled={loading}>
+            {loading ? 'Загрузка...' : (isLogin ? 'ВОЙТИ' : 'ЗАРЕГИСТРИРОВАТЬСЯ')}
           </button>
 
           <p className="switch-mode">
@@ -161,7 +217,6 @@ function Profile({ user, setUser, favorites, toggleFavorite, orders }) {
   // ЛИЧНЫЙ КАБИНЕТ
   return (
     <div className="profile">
-      {/* ОСНОВНОЙ БЛОК — РЫЖИЙ */}
       <div className="profile-main">
         <div className="profile-greeting">
           <h1>Здравствуйте, {personalData.firstName || user.name}!</h1>
